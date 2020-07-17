@@ -45,9 +45,20 @@ Convert a Rmd to an Ari Document
 }
 \examples{
 \donttest{
-path = system.file("extdata", "example.Rmd", package = "ariExtra")
-res = rmd_to_ari(path, open = FALSE)
-res$output_file
+if (rmarkdown::pandoc_available("1.12.3")) {
+  path = system.file("extdata", "example.Rmd", package = "ariExtra")
+  tfile = tempfile(fileext = ".pdf")
+  out = try({
+    output_file = tempfile(fileext = ".html")
+    rmarkdown::render(path, output_file = output_file)
+    pagedown::chrome_print(output_file,
+                           output = tfile)
+  }, silent = TRUE)
+  if (!inherits(out, "try-error")) {
+    res = rmd_to_ari(path, open = FALSE)
+    res$output_file
+  }
+}
 }
 
 \donttest{
@@ -84,6 +95,10 @@ res$output_file
       pdf_file = tempfile(fileext = ".pdf")
       xaringan::decktape(rendered_file, pdf_file, docker = FALSE)
       res = pdf_to_ari(pdf_file, script = script, open = FALSE)
+      result = rmd_to_ari(path = path,
+                 script = script,
+                 rendered_file = rendered_file,
+                 capturer = "decktape")
     }
   }
 }

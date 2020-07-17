@@ -130,9 +130,20 @@ get_nslides = function(slides) {
 #'
 #' @examples
 #' \donttest{
-#' path = system.file("extdata", "example.Rmd", package = "ariExtra")
-#' res = rmd_to_ari(path, open = FALSE)
-#' res$output_file
+#' if (rmarkdown::pandoc_available("1.12.3")) {
+#'   path = system.file("extdata", "example.Rmd", package = "ariExtra")
+#'   tfile = tempfile(fileext = ".pdf")
+#'   out = try({
+#'     output_file = tempfile(fileext = ".html")
+#'     rmarkdown::render(path, output_file = output_file)
+#'     pagedown::chrome_print(output_file,
+#'                            output = tfile)
+#'   }, silent = TRUE)
+#'   if (!inherits(out, "try-error")) {
+#'     res = rmd_to_ari(path, open = FALSE)
+#'     res$output_file
+#'   }
+#' }
 #' }
 #'
 #' \donttest{
@@ -190,33 +201,9 @@ rmd_to_ari = function(
 ) {
 
   experimental = FALSE
-  if (is.null(script)) {
-    if (verbose) {
-      message("Parsing HTML comments for script")
-    }
-    # yml = partition_yaml_front_matter(readLines(path))
-    paragraphs = parse_html_comments(path)
-    if (length(paragraphs) == 0) {
-      p2 = parse_xaringan_comments(path)
-      if (length(p2) > 0) {
-        paragraphs = p2
-      }
-    }
-    script = tempfile(fileext = ".txt")
-    if (verbose > 1) {
-      message(paste0("script is at: ", script))
-    }
-    writeLines(paragraphs, script)
-  } else {
-    if (length(script) > 1 & all(!file.exists(script))) {
-      tfile = tempfile(fileext = ".md")
-      writeLines(script, tfile)
-      script = tfile
-    }
-    stopifnot(length(script) == 1)
-    stopifnot(file.exists(script))
-    paragraphs = readLines(script)
-  }
+  out = rmd_script(path = path, script = script, verbose = verbose)
+  script = out$script
+  paragraphs = out$paragraphs
 
   capturer = match.arg(capturer)
   capture_method = match.arg(capture_method)
@@ -255,7 +242,7 @@ rmd_to_ari = function(
 
   if (capturer == "decktape") {
     if (!requireNamespace("xaringan", quietly = TRUE)) {
-      stop("xaringan pacakge needed to use decktape")
+      stop("xaringan package needed to use decktape")
     }
     pdf_file = tempfile(fileext = ".pdf")
     args = as.list(capturer_args)
@@ -266,7 +253,7 @@ rmd_to_ari = function(
     n_slides_guess = pdftools::pdf_info(pdf_file)$pages
   } else if (capturer == "chrome_print") {
     if (!requireNamespace("pagedown", quietly = TRUE)) {
-      stop("pagedown pacakge needed to use chrome_print")
+      stop("pagedown package needed to use chrome_print")
     }
     pdf_file = tempfile(fileext = ".pdf")
     args = as.list(capturer_args)
@@ -278,7 +265,7 @@ rmd_to_ari = function(
     n_slides_guess = pdftools::pdf_info(pdf_file)$pages
   } else {
     if (!requireNamespace("webshot", quietly = TRUE)) {
-      stop("webshot pacakge needed to use webshot")
+      stop("webshot package needed to use webshot")
     }
     if (verbose) {
       message("Getting the number of slides")
@@ -313,6 +300,8 @@ rmd_to_ari = function(
   img_paths <- sapply(slide_nums, function(r) {
     tempfile(fileext = ".png")
   })
+  # at least we know they will be in order
+  img_paths = sort(img_paths)
 
   if (capturer == "webshot") {
     if (experimental) {
@@ -348,4 +337,40 @@ rmd_to_ari = function(
     images = img_paths,
     script = script, ..., verbose = verbose)
 
+}
+
+
+rmd_script = function(path, script, verbose) {
+  if (is.null(script)) {
+    if (verbose) {
+      message("Parsing HTML comments for script")
+    }
+    # yml = partition_yaml_front_matter(readLines(path))
+    paragraphs = parse_html_comments(path)
+    if (length(paragraphs) == 0) {
+      p2 = parse_xaringan_comments(path)
+      if (length(p2) > 0) {
+        paragraphs = p2
+      }
+    }
+    if (length(paragraphs) == 0) {
+      stop("Cannot parse comments from Rmd!")
+    }
+    script = tempfile(fileext = ".txt")
+    if (verbose > 1) {
+      message(paste0("script is at: ", script))
+    }
+    writeLines(paragraphs, script)
+  } else {
+    if (length(script) > 1 & all(!file.exists(script))) {
+      tfile = tempfile(fileext = ".md")
+      writeLines(script, tfile)
+      script = tfile
+    }
+    stopifnot(length(script) == 1)
+    stopifnot(file.exists(script))
+    paragraphs = readLines(script)
+  }
+  L = list(script = script,
+           paragraphs = paragraphs)
 }

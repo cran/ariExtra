@@ -39,6 +39,8 @@ mario = function(
   api_key = Sys.getenv("CONNECT_API_KEY"),
   voice = NULL,
   service = NULL,
+  target = NULL,
+  token = NULL,
   ...
 ) {
   auth_hdr = mario_auth(api_key)
@@ -72,13 +74,87 @@ mario = function(
   body$script = script
   body$service = service
   body$voice = voice
-
+  if (!is.null(target) && is.null(token)) {
+    stop("If target specified, token needs to be set")
+  }
+  body$target = target
+  if (!is.null(token)) {
+    if (inherits(token, "Token")) {
+      tokenfile = tempfile(fileext = ".rds")
+      saveRDS(token, file = tokenfile)
+      token = tokenfile
+    }
+    stopifnot(file.exists(token))
+    token = httr::upload_file(token)
+  }
+  body$token = token
 
   response = httr::POST(
     url = paste0(api_url, "/to_ari"),
     body = body,
     auth_hdr, ...)
   response
+}
+
+mario_translate = function(
+  file,
+  api_url = "https://rsconnect.biostat.jhsph.edu/ario",
+  api_key = Sys.getenv("CONNECT_API_KEY"),
+  target = NULL,
+  token = NULL,
+  ...
+) {
+  auth_hdr = mario_auth(api_key)
+
+  if (all(file.exists(file))) {
+    zipfile = tempfile(fileext = ".zip")
+    utils::zip(zipfile, files = file)
+    file = zipfile
+    body = list(
+      file = httr::upload_file(file)
+    )
+  } else {
+    # google slide ids
+    body = list(
+      file = file
+    )
+  }
+
+
+  if (!is.null(target) && is.null(token)) {
+    stop("If target specified, token needs to be set")
+  }
+  body$target = target
+  if (!is.null(token)) {
+    if (inherits(token, "Token")) {
+      tokenfile = tempfile(fileext = ".rds")
+      saveRDS(token, file = tokenfile)
+      token = tokenfile
+    }
+    stopifnot(file.exists(token))
+    token = httr::upload_file(token)
+  }
+  body$token = token
+
+  response = httr::POST(
+    url = paste0(api_url, "/translate_slide"),
+    body = body,
+    auth_hdr, ...)
+  response
+}
+
+mario_content = function(response) {
+  out = jsonlite::fromJSON(
+    httr::content(response, as = "text"),
+    flatten = TRUE)
+  if ("video" %in% names(out)) {
+    out$video =  mario_write_video(response)
+  }
+  out$id = out$id[[1]]
+  if ("subtitles" %in% names(out)) {
+    out$subtitles =  mario_subtitles(response)
+  }
+  out
 }
 
 mario_write_video = function(response) {
@@ -89,6 +165,14 @@ mario_write_video = function(response) {
   output = tempfile(fileext = ".mp4")
   writeBin(bin_data, output)
   output
+}
+
+mario_subtitles = function(response) {
+  httr::stop_for_status(response)
+  bin_data = httr::content(response)
+  bin_data = bin_data$subtitles[[1]]
+  bin_data = base64enc::base64decode(bin_data)
+  rawToChar(bin_data)
 }
 
 open_video = function(response, open = TRUE) {
