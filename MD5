@@ -1,4 +1,4 @@
-cf520898a203457b9ce0b1065f666586 *DESCRIPTION
+7d2b96ccdbcc31a7b74e9770ce82d2f8 *DESCRIPTION
 39ec9a8e34a08e18196ea3c91e4686c2 *NAMESPACE
 42139b1417e81e59823c48a33fe9bc65 *NEWS.md
 b2b9b1fb69b83e71cf984b1a6461f078 *R/aaa_utils.R
@@ -12,7 +12,7 @@ fe84a933f5b0825cc034db152b761596 *R/pptx_notes.R
 d762c6f64896ecb94119519e2ecc458e *build/vignette.rds
 9a01f100708883fadfefaf3371115710 *inst/doc/making_videos.R
 35b199b7fad1a32194161a67f6f31728 *inst/doc/making_videos.Rmd
-5d83310765007b341ad3efa07fb86325 *inst/doc/making_videos.html
+c53e74d06c6bd12e15d77e55f91fd4e8 *inst/doc/making_videos.html
 e2460e509640833157593be0c3564003 *inst/extdata/docProps/app.xml
 2adbac69f3fa20740cc366842da2d99f *inst/extdata/docProps/core.xml
 a9794ce47b845753fba5704112d442af *inst/extdata/example.Rmd
@@ -40,5 +40,5 @@ efba0d5b82b6df8ccec04c919a8e48f0 *tests/testthat.R
 cd83da0ca3acd916f002dd0cb31d0219 *tests/testthat/test-gs.R
 67607bb739e956402ffeac23880976d7 *tests/testthat/test-pdf_to_images.R
 3b18b99749e254ef339fe37e9cadd6d7 *tests/testthat/test-pptx.R
-9f189e209f1eb1ed73db6201d1853bc6 *tests/testthat/test-rmd_to_ari.R
+46f61181fe4eb5b0d2c0049bcdae0bff *tests/testthat/test-rmd_to_ari.R
 35b199b7fad1a32194161a67f6f31728 *vignettes/making_videos.Rmd
