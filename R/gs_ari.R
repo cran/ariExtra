@@ -1,3 +1,20 @@
+quick_arg_check = function(args) {
+  if ("output" %in% names(args) & !"output_file" %in% names(args)) {
+    warning("output passed, but not output_file, should pass both (may be a bug)")
+  }
+}
+
+#' Download Google Slides File
+#'
+#' @param id Identifier of Google slides presentation, passed to
+#' \code{\link{get_slide_id}}
+#' @param out_type output type of file to download. Usually
+#' `pdf` or `pptx`
+#'
+#' @note This downloads presentations if they are public and also try to make
+#' sure it does not fail on large files
+#' @return Downloaded file (in temporary directory)
+#' @export
 download_gs_file = function(id, out_type = "pptx") {
   id = as.character(id)
   id = get_slide_id(id)
@@ -7,7 +24,7 @@ download_gs_file = function(id, out_type = "pptx") {
   result = httr::GET(url, httr::write_disk(tfile))
   warn_them = FALSE
   fr_header = result$headers$`x-frame-options`
-  if (is.null(fr_header)) {
+  if (!is.null(fr_header)) {
     if (all(fr_header == "DENY")) {
       warn_them = TRUE
     }
@@ -15,12 +32,18 @@ download_gs_file = function(id, out_type = "pptx") {
   if (httr::status_code(result) >= 300) {
     warn_them = TRUE
   }
+  # don't write something if not really a pptx
+  ctype = result$headers$`content-type`
+  if (httr::status_code(result) >= 400 &&
+      !is.null(ctype) && grepl("html", ctype)) {
+    file.remove(tfile)
+  }
   if (grepl("ServiceLogin", result$url)) {
     warn_them = TRUE
   }
-  if (result$times["redirect"] > 0) {
-    warn_them = TRUE
-  }
+  # if (result$times["redirect"] > 0) {
+  #   warn_them = TRUE
+  # }
   if (warn_them) {
     warning(
       paste0(
@@ -73,6 +96,8 @@ gs_to_ari = function(
   ...,
   verbose = TRUE) {
 
+  args = list(...)
+  quick_arg_check(args)
   if (verbose) {
     message("Downloading PPTX")
   }
@@ -98,6 +123,27 @@ gs_to_ari = function(
   # pptx_to_ari(pptx_file, script = script, ..., verbose = verbose)
 }
 
+#' @export
+#' @rdname gs_to_ari
+gs_pptx_notes = function(
+  path,
+  verbose = TRUE) {
+
+  if (verbose) {
+    message("Downloading PPTX")
+  }
+  pptx_file = download_gs_file(id = path, out_type = "pptx")
+  if (verbose > 1) {
+    message(paste0("pptx is at: ", pptx_file))
+  }
+
+  script = get_pptx_script(
+    path = pptx_file,
+    script = NULL,
+    verbose = verbose)
+  L = list(script = script,
+           pptx_file = pptx_file)
+}
 
 #' @rdname gs_to_ari
 #' @export
@@ -205,6 +251,8 @@ pdf_to_ari = function(
   ...,
   verbose = TRUE){
   stopifnot(!is.null(script))
+  args = list(...)
+  quick_arg_check(args)
   pngs = pdf_to_pngs(path = path, dpi = dpi, verbose = verbose)
   make_ari_document(pngs, script = script, ..., verbose = verbose)
 }
@@ -272,6 +320,8 @@ images_to_ari = function(
   dpi = 300,
   ...,
   verbose = TRUE){
+  args = list(...)
+  quick_arg_check(args)
   make_ari_document(path, script = script, ..., verbose = verbose)
 }
 

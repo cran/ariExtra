@@ -1,8 +1,5 @@
 ## ---- include = FALSE---------------------------------------------------------
-knitr::opts_chunk$set(
-collapse = TRUE,
-comment = "#>"
-)
+knitr::opts_chunk$set(collapse = TRUE,comment = "#>")
 
 ## ----stitch_run, message = FALSE, echo = FALSE, eval = TRUE-------------------
 library(tuneR)
